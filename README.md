@@ -2,6 +2,8 @@
 
 話している間だけ録音して、wavとして再生・保存可能にするデモ
 
+https://mowa-net.jp/demos/webrec_demo/
+
 * WebRTC
 * Web Audio API
 * Recorderjs (https://github.com/mattdiamond/Recorderjs)
