@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Button-less Record Demo</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script type="text/javascript" src="//code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <div id="wrap">
+      <div class="container">
+        <div id="header"> 
+          <h1>Button-less Record Demo</h1>
+        </div>
+        <div id="main_display">
+          <canvas id="visual" width="256" height="256"></canvas>
+          <div id="timer">
+            <div id="record_timer"></div>
+          </div>
+        </div>
+        <ul id="timeline">
+        </ul>
+      </div>
+      <div id="footer">
+        <p>
+          Author: Daisuke Miyakawa (@amedama, 2016-07) 
+        </p>
+        <p>
+          License: Apache2
+        </p>
+      </div>
+    </div>
+
+    <script src="js/recorder.js"></script>
+    <script src="js/main.js"></script>
+    <script>
+      $(document).ready(function() {
+        Main.init();
+      });
+    </script>
+  </body>
+</html>
