@@ -120,7 +120,7 @@ var Main = (function() {
     var accum = 0;
     for (var i = 0; i < 256; ++i) {
       visualContext.fillStyle = "rgb(0,255,0)"
-      visualContext.fillRect(i, 256 - data[i], 1, data[i]);
+      visualContext.fillRect(i, 256 - data[i], 1, 2);
       // 128 ... 何も音がないとき
       accum += Math.abs(data[i] - 128);
     }
@@ -203,7 +203,7 @@ var Main = (function() {
     $('#timeline').append(
       '<li>'
       + fname
-      + ' <a onclick="playWavBlob(\'' + url + '\');"><span class="glyphicon glyphicon-play"></span></a>'
+      + ' <a onclick="Main.playWavBlob(\'' + url + '\');"><span class="glyphicon glyphicon-play"></span></a>'
       + ' <a href="' + url + '" download="' + fname + '"><span class="glyphicon glyphicon-save"></span></a>'
       + '</li>');
   
@@ -270,6 +270,7 @@ var Main = (function() {
   }
 
   return {
-    init: init
+    init: init,
+    playWavBlob: playWavBlob
   };
 })();
