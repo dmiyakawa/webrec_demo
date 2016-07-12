@@ -123,7 +123,7 @@ var Main = (function() {
       } else {
         silenceCounter++;
         if (silenceCounter >= MAX_SILENCE_COUNTER) {
-          stopRecording();
+          stopRecordingWithExport();
           loudnessCounter = 0;
         }
       }
@@ -174,7 +174,7 @@ var Main = (function() {
     
     recorder.record();
   }
-  
+
   function stopRecording() {
     if (!isRecording) {
       console.warn("stopRecording() ignored; recording not started yet")
@@ -186,6 +186,11 @@ var Main = (function() {
     isRecording = false;
   
     recorder.stop();
+  }
+
+  function stopRecordingWithExport() {
+    stopRecording();
+    recorder.exportWAV(onWavExported);
   }
   
   function onWavExported(blob) {
@@ -241,8 +246,7 @@ var Main = (function() {
     var percent = Math.floor((recordedTimeMillis / MAX_RECORD_TIME_MILLIS) * 100);
     if (percent >= 100) {
       percent = 100;
-      stopRecording();
-      recorder.exportWAV(onWavExported);
+      stopRecordingWithExport();
     }
     var ratio = percent / 100.0;
     var color  = 'rgba(' + Math.floor(255*ratio) + ',0,' + Math.floor(255*(1-ratio)) + ',1)';
