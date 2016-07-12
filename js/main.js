@@ -37,17 +37,17 @@ window.cancelAnimationFrame = (function() {
 }());
 
 var Main = (function() {
-  // 1 minute (unit: milliseconds)
-  var MAX_RECORD_TIME = 60 * 1000;
-  
+  var MAX_RECORD_TIME_MILLIS = 60 * 1000;
+  var INTERVAL_MILLIS = 100;
+  var MAX_LOUDNESS_COUNTER = 3;
+  var MAX_SILENCE_COUNTER = 10;
+
   var intervalId = null;
   
   var visualCanvas = null;
   var visualContext = null;
   
-  // Audio
   var audioContext = null;
-  var lowpassFilter = null;
   var analyser = null;
   var delay = null
   var recorder = null;
@@ -56,24 +56,17 @@ var Main = (function() {
   var timerRequestId = null;
   var recordedTimeMillis = 0;
   var previousTimeMillis = 0;
-  
-  var MAX_SILENT_THRES = 15;
-  
-  var loud_thres = 0;
-  var silent_thres = 0;
+
+  var loudnessCounter = 0;
+  var silenceCounter = 0;
   
   function init() {
     console.log("init()");
   
     audioContext = new AudioContext();
-  
-    lowpassFilter = audioContext.createBiquadFilter();
-    lowpassFilter.type = "lowpass";
-    lowpassFilter.frequency.value = 20000;
-  
+
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
-    analyser.smoothingTimeContant = 0.9;
   
     delay = audioContext.createDelay()
   
@@ -88,20 +81,18 @@ var Main = (function() {
     navigator.getUserMedia({video: false, audio: true}, function(stream) {
       var input = audioContext.createMediaStreamSource(stream);
   
-      input.connect(lowpassFilter);
-      lowpassFilter.connect(analyser);
+      input.connect(analyser)
       startInterval();
   
       // 600ms 遅延状態で録音する
       delay.delayTime.value = 0.6;
-      lowpassFilter.connect(delay);
+      input.connect(delay);
       recorder = new Recorder(delay, { workerPath: 'js/recorderjs/recorderWorker.js' });
       if (!recorder) {
         alert("Failed to create Recorder object");
       }
     }, function() {
-      alert("Mic access error!");
-      return;
+      alert("getUserMedia() failed");
     });
   }
   
@@ -112,11 +103,12 @@ var Main = (function() {
     }
   
     visualContext.fillStyle = "rgb(0,0,0)";
-    visualContext.fillRect(0, 0, 256, 256);
+    visualContext.fillRect(0, 0, analyser.fftSize, 256);
   
     var data = new Uint8Array(256);
     analyser.getByteTimeDomainData(data);
-    // 物理的に正しいとは思われないが、絶対値を加算してしきい値を設定する
+    // 絶対値を加算してしきい値を設定する
+    // (音声解析的に正確な処理ではない。多分)
     var accum = 0;
     for (var i = 0; i < 256; ++i) {
       visualContext.fillStyle = "rgb(0,255,0)"
@@ -124,56 +116,58 @@ var Main = (function() {
       // 128 ... 何も音がないとき
       accum += Math.abs(data[i] - 128);
     }
-    if (!isRecording) {
+    if (isRecording) {
       if (accum > 1000) {
-        // console.log("accum: " + accum);
-        
-        // 概ね 300ms 以上うるさかったら録音開始
-        loud_thres += 1;
-        if (loud_thres > 2) {
-          startRecording();  // isRecording = trueとなる
-          loud_thres = 0;
-          silent_thres = MAX_SILENT_THRES;
-        }
+        // うるさくなったらカウンタはリセット
+        silenceCounter = 0;
       } else {
-        loud_thres = 0;
+        silenceCounter++;
+        if (silenceCounter >= MAX_SILENCE_COUNTER) {
+          stopRecording();
+          loudnessCounter = 0;
+        }
       }
     } else {
-      // console.log("accum: " + accum);
       if (accum > 1000) {
-        // うるさければ silent_thres はリセットされる
-        silent_thres = MAX_SILENT_THRES;
-      } else {
-        silent_thres--;
-        if (silent_thres <= 0) {
-          stopRecording();  // isRecording = falseとなる
+        loudnessCounter += 1;
+        if (loudnessCounter >= MAX_LOUDNESS_COUNTER) {
+          startRecording();
+          silenceCounter = 0;
         }
+      } else {
+        // 静かになったらリセット
+        loudnessCounter = 0;
       }
     }
   }
   
   function startInterval() {
     if (intervalId) {
+      console.warn("startInterval() ignored; intervalId already exists(" + intervalId + ")");
       return;
     }
+    console.log("startInterval()");
   
-    intervalId = setInterval(onInterval, 100);
+    intervalId = setInterval(onInterval, INTERVAL_MILLIS);
   }
   
   function stopInterval() {
     if (!intervalId) {
+      console.warn("stopInterval() ignored; no intervalId available.");
       return;
     }
+    console.log("stopInterval()");
   
     clearInterval(intervalId);
     intervalId = null;
   }
   
   function startRecording() {
-    console.log("startRecording()");
-    if (isRecording) { // already started.
+    if (isRecording) {
+      console.warn("startRecording() ignored; already started recording.");
       return;
     }
+    console.log("startRecording()");
     
     isRecording = true;
     startRecordTimer();
@@ -182,16 +176,16 @@ var Main = (function() {
   }
   
   function stopRecording() {
-    console.log("stopRecording()");
     if (!isRecording) {
+      console.warn("stopRecording() ignored; recording not started yet")
       return;
     }
+    console.log("stopRecording()");
   
     stopRecordTimer();
     isRecording = false;
   
     recorder.stop();
-    recorder.exportWAV(onWavExported);
   }
   
   function onWavExported(blob) {
@@ -212,6 +206,7 @@ var Main = (function() {
   }
   
   function playWavBlob(url) {
+    console.log("playWavBlob(" + url + ")");
     var request = new XMLHttpRequest();
     request.open('GET', url, true);
     request.responseType = 'arraybuffer';
@@ -243,10 +238,11 @@ var Main = (function() {
   }
   
   function updateRecordTimer() {
-    var percent = Math.floor((recordedTimeMillis / MAX_RECORD_TIME) * 100);
+    var percent = Math.floor((recordedTimeMillis / MAX_RECORD_TIME_MILLIS) * 100);
     if (percent >= 100) {
-      stopRecording();
       percent = 100;
+      stopRecording();
+      recorder.exportWAV(onWavExported);
     }
     var ratio = percent / 100.0;
     var color  = 'rgba(' + Math.floor(255*ratio) + ',0,' + Math.floor(255*(1-ratio)) + ',1)';
