@@ -81,16 +81,17 @@ var Main = (function() {
     navigator.getUserMedia({video: false, audio: true}, function(stream) {
       var input = audioContext.createMediaStreamSource(stream);
   
-      input.connect(analyser)
-      startInterval();
-  
       // 600ms 遅延状態で録音する
       delay.delayTime.value = 0.6;
       input.connect(delay);
       recorder = new Recorder(delay, { workerPath: 'js/recorderjs/recorderWorker.js' });
       if (!recorder) {
         alert("Failed to create Recorder object");
+        return;
       }
+
+      input.connect(analyser)
+      startInterval();
     }, function() {
       alert("getUserMedia() failed");
     });
@@ -108,7 +109,7 @@ var Main = (function() {
     var data = new Uint8Array(256);
     analyser.getByteTimeDomainData(data);
     // 絶対値を加算してしきい値を設定する
-    // (音声解析的に正確な処理ではない。多分)
+    // (音声解析として正確な処理ではない)
     var accum = 0;
     for (var i = 0; i < 256; ++i) {
       visualContext.fillStyle = "rgb(0,255,0)"
