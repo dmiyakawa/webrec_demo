@@ -84,7 +84,7 @@ var Main = (function() {
       // 600ms 遅延状態で録音する
       delay.delayTime.value = 0.6;
       input.connect(delay);
-      recorder = new Recorder(delay, { workerPath: 'js/recorderjs/recorderWorker.js' });
+      recorder = new Recorder(delay, {workerPath: 'js/recorderjs/recorderWorker.js'});
       if (!recorder) {
         alert("Failed to create Recorder object");
         return;
@@ -119,7 +119,7 @@ var Main = (function() {
     }
     if (isRecording) {
       if (accum > 1000) {
-        // うるさくなったらカウンタはリセット
+        // うるさくなったらリセット
         silenceCounter = 0;
       } else {
         silenceCounter++;
